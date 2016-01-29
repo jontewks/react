@@ -11,6 +11,8 @@
 
 'use strict';
 
+var shallowEqual = require('shallowEqual')
+
 var SyntheticEvent;
 
 describe('SyntheticEvent', function() {
@@ -106,6 +108,20 @@ describe('SyntheticEvent', function() {
       'you\'re seeing this, you\'re calling `stopPropagation` on a ' +
       'released/nullified synthetic event. This is a no-op. See ' +
       'https://fb.me/react-event-pooling for more information.'
+    );
+  });
+
+  it('should warn if the synthetic event has been modified', function() {
+    spyOn(console, 'error');
+    var syntheticEvent = createEvent({});
+    syntheticEvent.foo = 'bar';
+    syntheticEvent.destructor();
+    expect(console.error.calls.length).toBe(1);
+    expect(console.error.argsForCall[0][0]).toBe(
+      'Warning: This synthetic event is reused for performance reasons. If ' +
+      'you\'re seeing this, you\'re modifying a synthetic event object that ' +
+      'will be reused. See https://fb.me/react-event-pooling ' +
+      'for more information.'
     );
   });
 });

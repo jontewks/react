@@ -16,6 +16,7 @@ var PooledClass = require('PooledClass');
 var assign = require('Object.assign');
 var emptyFunction = require('emptyFunction');
 var warning = require('warning');
+var areEqual = require('areEqual');
 
 /**
  * @interface Event
@@ -35,6 +36,8 @@ var EventInterface = {
   defaultPrevented: null,
   isTrusted: null,
 };
+
+var currentEvent;
 
 /**
  * Synthetic events are dispatched by event plugins, typically in response to a
@@ -85,6 +88,9 @@ function SyntheticEvent(dispatchConfig, targetInst, nativeEvent, nativeEventTarg
     this.isDefaultPrevented = emptyFunction.thatReturnsFalse;
   }
   this.isPropagationStopped = emptyFunction.thatReturnsFalse;
+
+  // Save for modification check upon destructor call
+  currentEvent = this
 }
 
 assign(SyntheticEvent.prototype, {
@@ -156,6 +162,16 @@ assign(SyntheticEvent.prototype, {
    * `PooledClass` looks for `destructor` on each instance it releases.
    */
   destructor: function() {
+    if (__DEV__) {
+      warning(
+        areEqual(currentEvent, this),
+        'This synthetic event is reused for performance reasons. If ' +
+        'you\'re seeing this, you\'re modifying a synthetic event object that ' +
+        'will be reused. See https://fb.me/react-event-pooling ' +
+        'for more information.'
+      );
+    }
+
     var Interface = this.constructor.Interface;
     for (var propName in Interface) {
       this[propName] = null;
